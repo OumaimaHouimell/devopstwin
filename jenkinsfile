@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven'       // Nom configuré dans Jenkins (Global Tool Configuration)
+        jdk 'java'          // Idem pour JDK
+    }
+
+    stages {
+
+        stage('Clone repository') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/OumaimaHouimell/devopstwin.git'
+            }
+        }
+        }}
