@@ -11,7 +11,8 @@ pipeline {
         stage('Clone repository') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/OumaimaHouimell/devopstwin.git'
+                    url: 'git@github.com:OumaimaHouimell/devopstwin.git
+'
             }
         }
         }}
