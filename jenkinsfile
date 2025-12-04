@@ -14,4 +14,11 @@ pipeline {
                 url: 'https://github.com/OumaimaHouimell/devopstwin.git'
             }
         }
-        }}
+
+         stage('Build') {
+                    steps {
+                        sh 'mvn -B clean package'
+                    }
+                }
+        }
+}
