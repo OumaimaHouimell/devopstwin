@@ -2,23 +2,64 @@ pipeline {
     agent any
 
     tools {
-        maven 'maven'       // Nom configuré dans Jenkins (Global Tool Configuration)
-        jdk 'java'          // Idem pour JDK
+        maven 'maven'
+        jdk 'java'
+    }
+
+    environment {
+        DOCKERHUB_CREDENTIALS = 'dockerhub'
+        IMAGE_NAME = 'student-management'
+        DOCKERHUB_USER = 'lahouimeloumaima'
+        IMAGE_TAG = '1.0'
     }
 
     stages {
-
         stage('Clone repository') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/OumaimaHouimell/devopstwin.git'
+                git branch: 'master',
+                    url: 'https://github.com/OumaimaHouimell/devopstwin.git'
             }
         }
-
-         stage('Build') {
-                    steps {
-                        sh 'mvn -B clean package'
-                    }
-                }
+        
+        stage('Build') {
+            steps {
+                sh 'mvn -B clean package'
+            }
         }
+        
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+        
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKERHUB_CREDENTIALS}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                        docker logout
+                    '''
+                }
+            }
+        }
+        
+        stage('Run Container') {
+            steps {
+                sh '''
+                    docker stop student-app 2>/dev/null || true
+                    docker rm student-app 2>/dev/null || true
+                    docker run -d --name student-app -p 8081:8080 ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
+    }
 }
+
+
+
