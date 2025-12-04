@@ -11,7 +11,6 @@ pipeline {
         stage('Clone repository') {
             steps {
                 git branch: 'main',
-                credentialsId: 'git',
                 url: 'https://github.com/OumaimaHouimell/devopstwin.git'
             }
         }
