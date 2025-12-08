@@ -75,7 +75,25 @@ pipeline {
             }
         }
     }
-}
+post {
+        success {
+            mail bcc: '',
+                 cc: '',
+                 to: 'oumaimahouimel4@gmail.com',
+                 subject: 'SUCCESS',
+                 body: 'The build has Succeeded!'
+        }
+
+        failure {
+            mail bcc: '',
+                 cc: '',
+                 to: 'oumaimahouimel4@gmail.com',
+                 subject: 'FAILURE',
+                 body: 'The build has FAILED! Fix required!'
+        }
+    }
+
+} 
 
 
 
