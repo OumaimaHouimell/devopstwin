@@ -75,22 +75,22 @@ pipeline {
             }
         }
     }
-post {
-    success {
-        emailext(
-            to: "oumaimahouimel4@gmail.com",
-            subject: "SUCCESS",
-            body: "The build has succeeded!"
-        )
+    post {
+        success {
+            emailext(
+                to: "oumaimahouimel4@gmail.com",
+                subject: "SUCCESS ✔ Jenkins Pipeline",
+                body: "The pipeline succeeded!"
+            )
+        }
+
+        failure {
+            emailext(
+                to: "oumaimahouimel4@gmail.com",
+                subject: "FAILURE ❌ Jenkins Pipeline",
+                body: "The pipeline failed! Please check Jenkins."
+            )
+        }
     }
 
-    failure {
-        emailext(
-            to: "oumaimahouimel4@gmail.com",
-            subject: "FAILURE",
-            body: "The build has FAILED! Fix required!"
-        )
-    }
 }
-
-
