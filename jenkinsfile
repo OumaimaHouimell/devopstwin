@@ -23,7 +23,7 @@ pipeline {
         
         stage('Build') {
             steps {
-                sh 'mvn -B clean package '
+                sh 'mvn -B clean package'
             }
         }
 
@@ -34,7 +34,7 @@ pipeline {
                         sh """
                             mvn sonar:sonar \
                             -Dsonar.projectKey=devopstwin \
-                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.host.url=http://192.168.33.10:9000 \
                             -Dsonar.login=$SONAR_TOKEN
                         """
                     }
@@ -42,7 +42,6 @@ pipeline {
             }
         }
 
-        
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
@@ -75,6 +74,7 @@ pipeline {
             }
         }
     }
+
     post {
         success {
             emailext(
@@ -92,5 +92,4 @@ pipeline {
             )
         }
     }
-
 }
