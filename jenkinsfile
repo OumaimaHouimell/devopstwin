@@ -11,16 +11,18 @@ pipeline {
         IMAGE_NAME = 'student-management-oumaima'
         DOCKERHUB_USER = 'lahouimeloumaima'
         IMAGE_TAG = '1.0'
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
     }
 
     stages {
+
         stage('Clone repository') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/OumaimaHouimell/devopstwin.git'
             }
         }
-        
+
         stage('Build') {
             steps {
                 sh 'mvn -B clean package'
@@ -47,7 +49,7 @@ pipeline {
                 sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
-        
+
         stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(
@@ -63,83 +65,41 @@ pipeline {
                 }
             }
         }
-        
-        stage('Run Container') {
+
+        stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                    docker stop student-app 2>/dev/null || true
-                    docker rm student-app 2>/dev/null || true
-                    docker run -d --name student-app -p 8081:8080 ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                '''
+                script {
+                    sh '''
+                        set +e
+
+                        echo "🔍 Diagnostic Kubernetes..."
+
+                        if [ ! -f "spring-deployment.yaml" ]; then
+                            echo "❌ spring-deployment.yaml introuvable"
+                            ls -la
+                            exit 1
+                        fi
+
+                        kubectl cluster-info || exit 1
+
+                        kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f -
+
+                        kubectl apply -f spring-deployment.yaml -n devops --validate=false
+
+                        echo "📊 Pods:"
+                        kubectl get pods -n devops
+                    '''
+                }
             }
         }
     }
-stage('Deploy to Kubernetes') {
-    steps {
-        script {
-            sh '''
-                set +e  # Ne pas arrêter sur les erreurs
-                
-                echo "🔍 Diagnostic Kubernetes..."
-                
-                # Étape 1: Vérifier les prérequis
-                if [ ! -f "spring-deployment.yaml" ]; then
-                    echo "❌ Fichier spring-deployment.yaml non trouvé"
-                    echo "📁 Contenu du répertoire :"
-                    ls -la
-                    exit 1
-                fi
-                
-                # Étape 2: Vérifier kubectl
-                KUBECTL_PATH=$(which kubectl)
-                if [ -z "$KUBECTL_PATH" ]; then
-                    echo "⚠️  kubectl non trouvé, tentative d'installation..."
-                    # Ajoutez ici l'installation adaptée à votre environnement
-                    echo "❌ Veuillez installer kubectl sur le node Jenkins"
-                    exit 1
-                else
-                    echo "✅ kubectl trouvé: $KUBECTL_PATH"
-                fi
-                
-                # Étape 3: Vérifier la connexion
-                kubectl cluster-info 2>/dev/null
-                if [ $? -ne 0 ]; then
-                    echo "⚠️  Impossible de se connecter au cluster Kubernetes"
-                    echo "ℹ️  Vérifiez la configuration kubeconfig"
-                    kubectl config view
-                else
-                    echo "✅ Connecté au cluster Kubernetes"
-                fi
-                
-                # Étape 4: Déployer
-                echo "🚀 Déploiement en cours..."
-                
-                # Créer le namespace si nécessaire
-                kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true
-                
-                # Appliquer avec plusieurs tentatives
-                for i in {1..3}; do
-                    echo "Tentative $i/3..."
-                    kubectl apply -f spring-deployment.yaml -n devops --validate=false && {
-                        echo "✅ Déploiement réussi"
-                        break
-                    }
-                    sleep 5
-                done
-                
-                # Vérifier le résultat
-                echo "📊 État final :"
-                kubectl get pods -n devops 2>/dev/null || echo "Impossible de récupérer les pods"
-            '''
-        }
-    }
-}
+
     post {
         success {
             emailext(
                 to: "oumaimahouimel4@gmail.com",
                 subject: "SUCCESS ✔ Jenkins Pipeline",
-                body: "The pipeline succeeded!"
+                body: "Application déployée avec succès sur Kubernetes"
             )
         }
 
@@ -147,7 +107,7 @@ stage('Deploy to Kubernetes') {
             emailext(
                 to: "oumaimahouimel4@gmail.com",
                 subject: "FAILURE ❌ Jenkins Pipeline",
-                body: "The pipeline failed! Please check Jenkins."
+                body: "Le pipeline a échoué. Vérifier Jenkins."
             )
         }
     }
